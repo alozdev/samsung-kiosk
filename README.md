@@ -35,14 +35,16 @@ La URL y demás opciones se configuran en un archivo `.env`; el build las incrus
 4. (Opcional) Agrega al `PATH` para usar `tizen` y `sdb` desde cualquier terminal:
    - `C:\tizen-studio\tools\ide\bin` (CLI `tizen`)
    - `C:\tizen-studio\tools` (`sdb`)
-5. Abre una **terminal nueva** y verifica:
+5. Si hiciste el paso 4, abre una **terminal nueva** y verifica:
 
    ```bash
    tizen version
    sdb version
    ```
 
-Si lo instalaste en otra ruta, define `TIZEN_HOME=<ruta>` en el `.env`; si no está en el `PATH`, usa la ruta completa, por ejemplo `C:\tizen-studio\tools\sdb.exe`.
+   Si no lo agregaste al `PATH`, en los comandos de este README usa la ruta completa, por ejemplo `C:\tizen-studio\tools\sdb.exe connect ...`. `npm run package` lo encuentra igual.
+
+Si lo instalaste en otra ruta que no sea `C:\tizen-studio`, define `TIZEN_HOME=<ruta>` en el `.env`.
 
 ## Configuración
 
