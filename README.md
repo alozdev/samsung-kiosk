@@ -22,7 +22,27 @@ La URL y demás opciones se configuran en un archivo `.env`; el build las incrus
 | Certificado **Samsung** (Certificate Manager de Tizen Studio) | Firmar el `.wgt`; debe incluir el DUID de la TV |
 | Samsung Smart TV con Tizen 3.0+ (modelos 2017 en adelante) | Dónde corre la app |
 
-`tizen` y `sdb` deben estar en el `PATH` (normalmente en `C:\tizen-studio\tools\ide\bin` y `C:\tizen-studio\tools`).
+> **Tizen Studio es obligatorio** para empaquetar e instalar la app en la TV. Sin él, `npm run build` funciona, pero `npm run package` falla con `'tizen' is not recognized...` / `No se encontró el CLI de Tizen`.
+
+## Instalar Tizen Studio
+
+1. Descarga el instalador **Tizen Studio (with IDE)** para tu sistema desde <https://developer.tizen.org/development/tizen-studio/download>.
+   - Requiere Java (JDK 8 u 11) solo para el IDE; los instaladores recientes ya lo traen incluido.
+2. Instálalo en **`C:\tizen-studio`** (ruta por defecto, la que el script de build busca automáticamente). Evita rutas con espacios.
+3. Al terminar se abre el **Package Manager** (también está en `C:\tizen-studio\package-manager\`). Instala:
+   - **Main SDK** → *Tizen SDK tools*.
+   - **Extension SDK** → *TV Extensions* (la versión más nueva) y *Samsung Certificate Extension*.
+4. (Opcional) Agrega al `PATH` para usar `tizen` y `sdb` desde cualquier terminal:
+   - `C:\tizen-studio\tools\ide\bin` (CLI `tizen`)
+   - `C:\tizen-studio\tools` (`sdb`)
+5. Abre una **terminal nueva** y verifica:
+
+   ```bash
+   tizen version
+   sdb version
+   ```
+
+Si lo instalaste en otra ruta, define `TIZEN_HOME=<ruta>` en el `.env`; si no está en el `PATH`, usa la ruta completa, por ejemplo `C:\tizen-studio\tools\sdb.exe`.
 
 ## Configuración
 
@@ -40,6 +60,7 @@ cp .env.example .env
 | `KIOSK_USER` | vacío | Usuario de basic auth (opcional). |
 | `KIOSK_PASSWORD` | vacío | Clave de basic auth (opcional). |
 | `TIZEN_PROFILE` | `kiosk` | Nombre del perfil de certificado en Tizen Studio. |
+| `TIZEN_HOME` | vacío | Ruta de Tizen Studio, si no está en `C:\tizen-studio`, en `~/tizen-studio` ni en el `PATH`. |
 
 ### Modos de carga
 
@@ -52,25 +73,42 @@ Si `KIOSK_USER` tiene valor, antes de cargar la página la app hace una petició
 
 ## Uso
 
-### 1. Preparar la TV (una sola vez)
+### 1. Activar el modo desarrollador en la TV (una sola vez)
 
-1. En la TV abre **Apps**, marca `1 2 3 4 5` con el control remoto.
-2. Activa **Developer mode**, ingresa la IP del PC desde donde vas a instalar y reinicia la TV.
-3. En Tizen Studio → **Certificate Manager**, crea un perfil tipo **Samsung** con el mismo nombre que `TIZEN_PROFILE`, registrando el DUID de la TV (se obtiene al conectarla con el Device Manager).
+1. Averigua la **IP de tu PC** con `ipconfig` (campo *Dirección IPv4*).
+2. En la TV abre **Apps** y marca `1 2 3 4 5` con el control remoto.
+3. Activa **Developer mode**, ingresa la IP de tu PC y **reinicia la TV** (apagar y encender).
+4. Averigua la **IP de la TV**: **Ajustes → General → Red → Estado de la red → Configuración IP** (en modelos 2022+: **Ajustes → Conexión → Red**). Conviene reservarle una IP fija en el router.
 
-### 2. Compilar, empaquetar e instalar
+### 2. Conectar la TV
+
+```bash
+sdb connect <IP_DE_LA_TV>
+sdb devices        # debe aparecer la TV; anota su nombre
+```
+
+### 3. Crear el certificado Samsung (una sola vez)
+
+Con la TV conectada (paso 2), abre el **Certificate Manager** (`C:\tizen-studio\tools\certificate-manager\`):
+
+1. Clic en **+** → tipo **Samsung** → dispositivo **TV**.
+2. Nombre del perfil: el mismo que `TIZEN_PROFILE` en el `.env` (por defecto `kiosk`).
+3. Crea un certificado de autor nuevo (define una contraseña y guárdala).
+4. Inicia sesión con tu **cuenta Samsung** cuando lo pida.
+5. En el certificado de distribuidor, verifica que aparezca el **DUID** de la TV conectada (si no, agrégalo). Sin el DUID la TV rechazará la instalación.
+
+### 4. Compilar, empaquetar e instalar
 
 ```bash
 npm run build      # genera build/ con la configuración del .env
-npm run package    # build + crea el .wgt firmado
+npm run package    # build + crea build/Kiosk.wgt firmado
 
-sdb connect <IP_DE_LA_TV>
 tizen install -n Kiosk.wgt -t <nombre-del-dispositivo> -- build
 ```
 
-`sdb devices` muestra el nombre del dispositivo. Para cambiar la URL basta con editar `.env` y repetir este paso.
+Para cambiar la URL basta con editar `.env` y repetir este paso.
 
-### 3. Abrir sola al encender
+### 5. Abrir sola al encender
 
 En la mayoría de los modelos: **Ajustes → General → Funciones inteligentes → Ejecutar automáticamente la última app**. Abre la app una vez y desde ahí se abrirá al encender la TV.
 
@@ -108,6 +146,8 @@ src/main.js         lógica: protector de pantalla, red, auth y carga de la URL
 
 | Síntoma | Causa probable |
 | --- | --- |
+| `'tizen' is not recognized` / `No se encontró el CLI de Tizen` | Tizen Studio no está instalado, o está en otra ruta → ver [Instalar Tizen Studio](#instalar-tizen-studio) o define `TIZEN_HOME`. |
+| `'sdb' is not recognized` | `C:\tizen-studio\tools` no está en el `PATH`; agrégalo o usa la ruta completa. |
 | Pantalla en blanco en modo `iframe` | El sitio bloquea iframes → usa `redirect`. |
 | Aparece el cuadro de login igual | La versión de Chromium de la TV no reutiliza las credenciales; prueba modo `redirect`. |
 | `tizen install` falla por certificado | El perfil no es tipo Samsung o no incluye el DUID de la TV. |

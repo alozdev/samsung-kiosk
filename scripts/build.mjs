@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, rmSync, cpSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 const root = join(import.meta.dirname, '..');
 const envPath = join(root, '.env');
@@ -43,5 +44,33 @@ console.log('build/ generado:', { ...config, password: config.password ? '***' :
 
 if (process.argv.includes('--package')) {
     const profile = env.TIZEN_PROFILE || 'kiosk';
-    execSync(`tizen package -t wgt -s ${profile} -- "${buildDir}"`, { stdio: 'inherit' });
+    const tizen = findTizen(env.TIZEN_HOME);
+    if (!tizen) {
+        console.error(
+            '\nNo se encontró el CLI de Tizen. Instala Tizen Studio (con TV Extensions) y luego:\n' +
+            '  - agrega <tizen-studio>\\tools\\ide\\bin al PATH, o\n' +
+            '  - define TIZEN_HOME=<ruta de tizen-studio> en el .env'
+        );
+        process.exit(1);
+    }
+    try {
+        execSync(`"${tizen}" package -t wgt -s ${profile} -- "${buildDir}"`, { stdio: 'inherit' });
+    } catch {
+        process.exit(1);
+    }
+}
+
+function findTizen(tizenHome) {
+    const exe = process.platform === 'win32' ? 'tizen.bat' : 'tizen';
+    const homes = [tizenHome, 'C:\\tizen-studio', join(homedir(), 'tizen-studio')].filter(Boolean);
+    for (const home of homes) {
+        const candidate = join(home, 'tools', 'ide', 'bin', exe);
+        if (existsSync(candidate)) return candidate;
+    }
+    try {
+        execSync(process.platform === 'win32' ? 'where tizen' : 'command -v tizen', { stdio: 'ignore' });
+        return 'tizen';
+    } catch {
+        return null;
+    }
 }
