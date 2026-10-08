@@ -46,6 +46,15 @@ La URL y demás opciones se configuran en un archivo `.env`; el build las incrus
 
 Si lo instalaste en otra ruta que no sea `C:\tizen-studio`, define `TIZEN_HOME=<ruta>` en el `.env`.
 
+### Alternativa: extensión Tizen de VS Code
+
+La extensión **Tizen** de VS Code instala un SDK reducido en `%USERPROFILE%\.tizen-extension-platform\server\sdktools\data` (el script de build también busca ahí). Trae `sdb`, Certificate Manager y Package Manager, pero **no** el CLI `tizen` ni el soporte para TV. Para completarlo, abre `...\sdktools\data\tools\package-manager\package-manager.exe` e instala:
+
+- Pestaña **Tizen SDK** → **Web CLI** (aporta `tools\ide\bin\tizen.bat`).
+- Pestaña **Extension SDK** → **TV Extensions** (incluye *TV Extension Tools* con el certificado Samsung).
+
+En los comandos de este README reemplaza `C:\tizen-studio` por esa ruta.
+
 ## Configuración
 
 Copia la plantilla y edítala:

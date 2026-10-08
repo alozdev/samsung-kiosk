@@ -62,7 +62,13 @@ if (process.argv.includes('--package')) {
 
 function findTizen(tizenHome) {
     const exe = process.platform === 'win32' ? 'tizen.bat' : 'tizen';
-    const homes = [tizenHome, 'C:\\tizen-studio', join(homedir(), 'tizen-studio')].filter(Boolean);
+    const homes = [
+        tizenHome,
+        'C:\\tizen-studio',
+        join(homedir(), 'tizen-studio'),
+        // SDK instalado por la extensión Tizen de VS Code
+        join(homedir(), '.tizen-extension-platform', 'server', 'sdktools', 'data'),
+    ].filter(Boolean);
     for (const home of homes) {
         const candidate = join(home, 'tools', 'ide', 'bin', exe);
         if (existsSync(candidate)) return candidate;
