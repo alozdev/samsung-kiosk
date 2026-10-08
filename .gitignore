@@ -2,3 +2,11 @@
 build/
 *.wgt
 node_modules/
+
+# Archivos que genera la extensión Tizen de VS Code / Tizen CLI
+Debug/
+Release/
+.tizen-rds/
+tizen_web_project.yaml
+.sign/
+*.p12
