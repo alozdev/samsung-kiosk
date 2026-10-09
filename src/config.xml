@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
-        id="http://alozdev/samsung-kiosk" version="1.0.0" viewmodes="maximized">
+        id="http://alozdev/samsung-kiosk" version="1.1.0" viewmodes="maximized">
     <tizen:application id="AlozKiosk0.kiosk" package="AlozKiosk0" required_version="3.0"/>
     <tizen:profile name="tv-samsung"/>
     <name>Kiosk</name>
+    <!-- Icono de Smart Hub: PNG 512x423 (tamaño recomendado por Samsung para TV) -->
+    <icon src="icon.png"/>
     <content src="index.html"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>
 
@@ -11,6 +13,9 @@
     <access origin="*" subdomains="true"/>
     <tizen:allow-navigation>*</tizen:allow-navigation>
     <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <!-- Quitar el silencio y fijar el volumen al arrancar (KIOSK_VOLUME) -->
+    <tizen:privilege name="http://tizen.org/privilege/tv.audio"/>
 
     <tizen:setting screen-orientation="landscape" context-menu="disable"
                    background-support="disable" encryption="disable"

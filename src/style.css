@@ -1,0 +1,36 @@
+/* En archivo aparte a propósito: Tizen aplica a la app la CSP "style-src 'self'",
+   que bloquea los <style> inline (en la TV no se aplicaban y el body quedaba con
+   margen y el iframe sin posición ni transform-origin). */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+iframe {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border: 0;
+    -webkit-transform-origin: 0 0;
+    transform-origin: 0 0;
+}
+
+#toast {
+    display: none;
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    font: 28px sans-serif;
+    border-radius: 8px;
+}

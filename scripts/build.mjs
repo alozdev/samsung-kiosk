@@ -34,7 +34,34 @@ const config = {
     reloadMinutes: Number(env.KIOSK_RELOAD_MINUTES) || 0,
     user: env.KIOSK_USER || '',
     password: env.KIOSK_PASSWORD || '',
+    zoom: parseZoom(env.KIOSK_ZOOM),
+    volume: parseVolume(env.KIOSK_VOLUME),
 };
+
+function parseVolume(value) {
+    if (!value) return null;
+    const volume = Number(value);
+    if (!Number.isInteger(volume) || volume < 0 || volume > 100) {
+        console.error(`KIOSK_VOLUME inválido: ${value} (usa un entero de 0 a 100, o vacío)`);
+        process.exit(1);
+    }
+    return volume;
+}
+
+function parseZoom(value) {
+    if (!value) return 1;
+    if (value === 'auto') return 'auto';
+    const zoom = Number(value);
+    if (!(zoom > 0)) {
+        console.error(`KIOSK_ZOOM inválido: ${value} (usa "auto" o un número, ej. 1.25)`);
+        process.exit(1);
+    }
+    return zoom;
+}
+
+if (config.mode === 'redirect' && config.zoom !== 'auto' && config.zoom !== 1) {
+    console.warn('Aviso: KIOSK_ZOOM solo funciona con KIOSK_MODE=iframe; en modo redirect se ignora.');
+}
 
 const buildDir = join(root, 'build');
 rmSync(buildDir, { recursive: true, force: true });
