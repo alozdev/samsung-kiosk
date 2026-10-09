@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kiosk</title>
-    <!-- Sin <style> inline: la CSP de Tizen (style-src 'self') lo bloquea -->
+    <!-- No inline <style>: Tizen's CSP (style-src 'self') blocks it -->
     <link rel="stylesheet" href="style.css">
-    <!-- Solo existe en la TV; en un navegador normal da 404 y se ignora -->
+    <!-- Only exists on the TV; in a regular browser it 404s and is ignored -->
     <script src="$WEBAPIS/webapis/webapis.js"></script>
     <script src="config.js"></script>
 </head>

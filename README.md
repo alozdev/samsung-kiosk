@@ -1,63 +1,63 @@
 # samsung-kiosk
 
-App para Samsung Smart TV (Tizen) que convierte la TV en una **pantalla de kiosk**: al abrirse muestra **una sola página web a pantalla completa**, sin barra de navegador, bordes ni menús, y se queda ahí. Sirve para dashboards, monitores de sistemas, pantallas informativas o cualquier página que deba estar siempre visible.
+App for Samsung Smart TVs (Tizen) that turns the TV into a **kiosk display**: when opened it shows **a single web page in full screen**, with no browser bar, borders or menus, and stays there. Useful for dashboards, system monitors, information screens or any page that must always be visible.
 
-La página a mostrar y el resto de opciones se definen en un archivo `.env`. Un script de build las incrusta en la app, la empaqueta como `.wgt` firmado y se instala en la TV por red.
+The page to show and the rest of the options are defined in a `.env` file. A build script embeds them into the app, packages it as a signed `.wgt` and installs it on the TV over the network.
 
-## Índice
+## Contents
 
-1. [Cómo funciona](#cómo-funciona)
-2. [Requisitos](#requisitos)
-3. [Instalar Tizen Studio](#instalar-tizen-studio)
-4. [Configuración (`.env`)](#configuración-env)
-5. [Modos de carga: `redirect` vs `iframe`](#modos-de-carga-redirect-vs-iframe)
-6. [Instalación en la TV](#instalación-en-la-tv)
-7. [Actualizar la app](#actualizar-la-app)
-8. [Uso diario y control remoto](#uso-diario-y-control-remoto)
-9. [Compatibilidad del sitio con la TV](#compatibilidad-del-sitio-con-la-tv)
-10. [Depurar en la TV](#depurar-en-la-tv)
-11. [Estructura del proyecto](#estructura-del-proyecto)
-12. [Seguridad y buenas prácticas](#seguridad-y-buenas-prácticas)
-13. [Limitaciones](#limitaciones)
-14. [Solución de problemas](#solución-de-problemas)
+1. [How it works](#how-it-works)
+2. [Requirements](#requirements)
+3. [Installing Tizen Studio](#installing-tizen-studio)
+4. [Configuration (`.env`)](#configuration-env)
+5. [Load modes: `redirect` vs `iframe`](#load-modes-redirect-vs-iframe)
+6. [Installing on the TV](#installing-on-the-tv)
+7. [Updating the app](#updating-the-app)
+8. [Daily use and remote control](#daily-use-and-remote-control)
+9. [Site compatibility with the TV](#site-compatibility-with-the-tv)
+10. [Debugging on the TV](#debugging-on-the-tv)
+11. [Project structure](#project-structure)
+12. [Security and best practices](#security-and-best-practices)
+13. [Limitations](#limitations)
+14. [Troubleshooting](#troubleshooting)
 
-## Cómo funciona
+## How it works
 
 ```
-.env ──► npm run package ──► build/Kiosk.wgt (firmado) ──► tizen install ──► TV
+.env ──► npm run package ──► build/Kiosk.wgt (signed) ──► tizen install ──► TV
          (scripts/build.mjs)
 ```
 
-1. `scripts/build.mjs` lee el `.env`, valida los valores, copia `src/` a `build/` y genera `build/config.js` con la configuración.
-2. Con `--package`, firma `build/` con tu certificado Samsung y genera `build/Kiosk.wgt`.
-3. `tizen install` envía el `.wgt` a la TV por la red (requiere el modo desarrollador de la TV).
+1. `scripts/build.mjs` reads `.env`, validates the values, copies `src/` to `build/` and generates `build/config.js` with the configuration.
+2. With `--package`, it signs `build/` with your Samsung certificate and produces `build/Kiosk.wgt`.
+3. `tizen install` sends the `.wgt` to the TV over the network (requires the TV's developer mode).
 
-Al abrirse en la TV, la app (`src/main.js`):
+When it opens on the TV, the app (`src/main.js`):
 
-1. Desactiva el protector de pantalla.
-2. Quita el silencio de la TV y, si se configuró, fija el volumen.
-3. Si no hay red, espera a tenerla.
-4. Si hay basic auth, hace una petición autenticada para que la TV guarde las credenciales.
-5. Carga la página según el [modo](#modos-de-carga-redirect-vs-iframe): navegando directo a ella (`redirect`) o dentro de un iframe (`iframe`).
+1. Disables the screen saver.
+2. Unmutes the TV and, if configured, sets the volume.
+3. If there is no network, waits for it.
+4. If basic auth is configured, makes an authenticated request so the TV caches the credentials.
+5. Loads the page according to the [mode](#load-modes-redirect-vs-iframe): navigating straight to it (`redirect`) or inside an iframe (`iframe`).
 
-La configuración queda **incrustada en el `.wgt`**: cambiar el `.env` no afecta a la TV hasta volver a empaquetar e instalar.
+The configuration is **embedded in the `.wgt`**: changing `.env` has no effect on the TV until you package and install again.
 
-## Requisitos
+## Requirements
 
-| Qué | Para qué |
+| What | Why |
 | --- | --- |
-| [Node.js](https://nodejs.org) 20.11 o superior | Ejecutar el script de build. |
-| **Tizen Studio** con *TV Extensions* y *Web CLI* | Los comandos `tizen` (empaquetar, instalar, abrir) y `sdb` (conectar con la TV). Ver [Instalar Tizen Studio](#instalar-tizen-studio). |
-| Cuenta Samsung | Crear el certificado Samsung con el que se firma la app. |
-| Samsung Smart TV con Tizen 3.0 o superior (modelos 2017 en adelante) | Donde corre la app. Debe estar en la misma red que el PC. |
+| [Node.js](https://nodejs.org) 20.11 or later | Runs the build script. |
+| **Tizen Studio** with *TV Extensions* and *Web CLI* | The `tizen` (package, install, launch) and `sdb` (connect to the TV) commands. See [Installing Tizen Studio](#installing-tizen-studio). |
+| Samsung account | Creating the Samsung certificate used to sign the app. |
+| Samsung Smart TV with Tizen 3.0 or later (2017 models onwards) | Where the app runs. Must be on the same network as the PC. |
 
-Sin Tizen Studio, `npm run build` funciona, pero `npm run package` falla con `No se encontró el CLI de Tizen`.
+Without Tizen Studio, `npm run build` works but `npm run package` fails with `Tizen CLI not found`.
 
-### Qué Tizen tiene mi TV
+### Which Tizen does my TV have
 
-En la TV, **Ajustes → Soporte → Acerca de este TV** muestra el código de modelo. La letra del año dentro del código indica la versión (por ejemplo, `UN32`**`T`**`4310` es de 2020):
+On the TV, **Settings → Support → About This TV** shows the model code. The year letter in the code tells the version (for example, `UN32`**`T`**`4310` is a 2020 model):
 
-| Letra | Año | Tizen | Navegador interno |
+| Letter | Year | Tizen | Built-in browser |
 | --- | --- | --- | --- |
 | M | 2017 | 3.0 | Chromium 47 |
 | N | 2018 | 4.0 | Chromium 56 |
@@ -68,251 +68,251 @@ En la TV, **Ajustes → Soporte → Acerca de este TV** muestra el código de mo
 | C | 2023 | 7.0 | Chromium 94 |
 | D | 2024 | 8.0 | Chromium 108 |
 
-La versión exacta se obtiene con la TV conectada: `sdb capability` (línea `platform_version`). El navegador interno importa más de lo que parece: ver [Compatibilidad del sitio](#compatibilidad-del-sitio-con-la-tv).
+The exact version is available with the TV connected: `sdb capability` (`platform_version` line). The built-in browser matters more than it seems: see [Site compatibility](#site-compatibility-with-the-tv).
 
-## Instalar Tizen Studio
+## Installing Tizen Studio
 
-1. Descarga **Tizen Studio (with IDE)** desde <https://developer.tizen.org/development/tizen-studio/download>. Los instaladores recientes ya incluyen Java.
-2. Instálalo en **`C:\tizen-studio`**, la ruta que el script de build busca por defecto. **Evita rutas con espacios**: algunos scripts de Tizen fallan con ellas.
-3. Al terminar se abre el **Package Manager** (también está en `C:\tizen-studio\package-manager\`). Instala:
-   - **Main SDK** → *Tizen SDK tools* (incluye *Web CLI*, el comando `tizen`).
-   - **Extension SDK** → *TV Extensions* (la versión más nueva) y *Samsung Certificate Extension*.
-4. Agrega al `PATH` (recomendado):
-   - `C:\tizen-studio\tools\ide\bin` → comando `tizen`
-   - `C:\tizen-studio\tools` → comando `sdb`
-5. En una **terminal nueva**, verifica con `tizen version` y `sdb version`.
+1. Download **Tizen Studio (with IDE)** from <https://developer.tizen.org/development/tizen-studio/download>. Recent installers already bundle Java.
+2. Install it in **`C:\tizen-studio`**, the path the build script looks in by default. **Avoid paths with spaces**: some Tizen scripts break with them.
+3. When it finishes, the **Package Manager** opens (it is also in `C:\tizen-studio\package-manager\`). Install:
+   - **Main SDK** → *Tizen SDK tools* (includes *Web CLI*, the `tizen` command).
+   - **Extension SDK** → *TV Extensions* (latest version) and *Samsung Certificate Extension*.
+4. Add to `PATH` (recommended):
+   - `C:\tizen-studio\tools\ide\bin` → `tizen` command
+   - `C:\tizen-studio\tools` → `sdb` command
+5. In a **new terminal**, check with `tizen version` and `sdb version`.
 
-Si no los agregas al `PATH`, usa rutas completas en los comandos (por ejemplo `C:\tizen-studio\tools\sdb.exe connect ...`); `npm run package` encuentra Tizen Studio igual. Si lo instalaste en otra carpeta, defínela en `TIZEN_HOME` del `.env`.
+If you don't add them to `PATH`, use full paths in the commands (for example `C:\tizen-studio\tools\sdb.exe connect ...`); `npm run package` finds Tizen Studio anyway. If you installed it in another folder, set it in `TIZEN_HOME` in `.env`.
 
-### Alternativa: extensión Tizen de VS Code
+### Alternative: Tizen extension for VS Code
 
-La extensión **Tizen** de VS Code instala un SDK reducido en `%USERPROFILE%\.tizen-extension-platform\server\sdktools\data`, que el script de build también busca. Trae `sdb`, Certificate Manager y Package Manager, pero **no** el comando `tizen` ni el soporte para TV: hay que instalar *Web CLI* y *TV Extensions* desde su Package Manager. Como esa ruta está dentro de la carpeta de usuario, si tu nombre de usuario tiene espacios el comando `tizen` falla; en ese caso usa Tizen Studio en `C:\tizen-studio`.
+The **Tizen** extension for VS Code installs a reduced SDK in `%USERPROFILE%\.tizen-extension-platform\server\sdktools\data`, which the build script also searches. It ships `sdb`, Certificate Manager and Package Manager, but **not** the `tizen` command or TV support: you must install *Web CLI* and *TV Extensions* from its Package Manager. Since that path is inside the user folder, the `tizen` command fails if your user name contains spaces; in that case use Tizen Studio in `C:\tizen-studio`.
 
-## Configuración (`.env`)
+## Configuration (`.env`)
 
 ```bash
 cp .env.example .env
 ```
 
-`.env.example` explica cada variable. Resumen:
+`.env.example` explains every variable. Summary:
 
-| Variable | Default | Modo | Descripción |
+| Variable | Default | Mode | Description |
 | --- | --- | --- | --- |
-| `KIOSK_URL` | — | ambos | **Obligatoria.** Página a mostrar, sin credenciales en la URL. |
-| `KIOSK_MODE` | `redirect` | — | `redirect` o `iframe`. Ver [Modos de carga](#modos-de-carga-redirect-vs-iframe). |
-| `KIOSK_ZOOM` | `1` | iframe | Escala de la página: `1` = 100 %, `1.25` = 125 %, o `auto`. Ver [Zoom](#zoom-solo-iframe). |
-| `KIOSK_RELOAD_MINUTES` | `0` | iframe | Recarga la página cada N minutos. `0` = nunca. |
-| `KIOSK_USER` | vacío | ambos | Usuario de basic auth. Vacío si el sitio no lo pide. Ver [Basic auth](#basic-auth). |
-| `KIOSK_PASSWORD` | vacío | ambos | Clave de basic auth. |
-| `KIOSK_VOLUME` | vacío | ambos | Volumen de la TV al abrir (0–100). Siempre quita el silencio; vacío = no cambia el volumen. |
-| `TIZEN_PROFILE` | `kiosk` | — | Nombre del perfil de certificado Samsung en el Certificate Manager. |
-| `TIZEN_HOME` | vacío | — | Carpeta de Tizen Studio, si no está en una ruta conocida ni en el `PATH`. |
+| `KIOSK_URL` | — | both | **Required.** Page to show, without credentials in the URL. |
+| `KIOSK_MODE` | `redirect` | — | `redirect` or `iframe`. See [Load modes](#load-modes-redirect-vs-iframe). |
+| `KIOSK_ZOOM` | `1` | iframe | Page scale: `1` = 100 %, `1.25` = 125 %, or `auto`. See [Zoom](#zoom-iframe-only). |
+| `KIOSK_RELOAD_MINUTES` | `0` | iframe | Reloads the page every N minutes. `0` = never. |
+| `KIOSK_USER` | empty | both | Basic auth user. Empty if the site doesn't require it. See [Basic auth](#basic-auth). |
+| `KIOSK_PASSWORD` | empty | both | Basic auth password. |
+| `KIOSK_VOLUME` | empty | both | TV volume when the app opens (0–100). Always unmutes; empty = keep the current volume. |
+| `TIZEN_PROFILE` | `kiosk` | — | Name of the Samsung certificate profile in the Certificate Manager. |
+| `TIZEN_HOME` | empty | — | Tizen Studio folder, if it is not in a known location or in `PATH`. |
 
-En modo `redirect`, `KIOSK_ZOOM` y `KIOSK_RELOAD_MINUTES` se ignoran (el build avisa si pones un zoom distinto de `1`).
+In `redirect` mode, `KIOSK_ZOOM` and `KIOSK_RELOAD_MINUTES` are ignored (the build warns if you set a zoom other than `1`).
 
-## Modos de carga: `redirect` vs `iframe`
+## Load modes: `redirect` vs `iframe`
 
-La diferencia de fondo: en **`redirect`** la app navega a la página y **deja de existir**; la página queda sola en pantalla. En **`iframe`** la app **se queda alrededor** de la página y la muestra dentro de un iframe, así que puede seguir actuando sobre ella.
+The core difference: in **`redirect`** the app navigates to the page and **ceases to exist**; the page is left alone on screen. In **`iframe`** the app **stays around** the page and shows it inside an iframe, so it can keep acting on it.
 
 | | `redirect` | `iframe` |
 | --- | --- | --- |
-| Funciona con cualquier sitio | ✅ | ⚠️ Solo si el sitio permite ser embebido |
-| Pantalla completa sin bordes | ✅ | ✅ |
+| Works with any site | ✅ | ⚠️ Only if the site allows being embedded |
+| Borderless full screen | ✅ | ✅ |
 | Basic auth | ✅ | ✅ |
-| Sonido de la página | ✅ | ✅ |
-| Protector de pantalla desactivado y volumen | ✅ (al arrancar) | ✅ (al arrancar) |
-| Espera de red al arrancar | ✅ | ✅ |
+| Page sound | ✅ | ✅ |
+| Screen saver disabled and volume | ✅ (on start) | ✅ (on start) |
+| Waits for network on start | ✅ | ✅ |
 | Zoom (`KIOSK_ZOOM`, CH+/CH−) | ❌ | ✅ |
-| Recarga periódica (`KIOSK_RELOAD_MINUTES`) | ❌ | ✅ |
-| Teclas del control remoto | Todas llegan a la página | CH+, CH− y 0 los usa la app para el zoom |
+| Periodic reload (`KIOSK_RELOAD_MINUTES`) | ❌ | ✅ |
+| Remote control keys | All reach the page | CH+, CH− and 0 are used by the app for zoom |
 
-**Cuándo usar cada uno:**
+**When to use each:**
 
-- **`iframe`**, si el sitio lo permite: es el más flexible. Para saberlo, revisa que la respuesta del sitio **no** traiga `X-Frame-Options` ni un `Content-Security-Policy: frame-ancestors` restrictivo (`curl -I https://tu-sitio`). Si no lo permite, la TV muestra la pantalla en negro.
-- **`redirect`**, si el sitio no se deja embeber o si la página necesita recibir todas las teclas del control.
+- **`iframe`**, if the site allows it: it is the most flexible. To check, make sure the site's response does **not** include `X-Frame-Options` or a restrictive `Content-Security-Policy: frame-ancestors` (`curl -I https://your-site`). If it isn't allowed, the TV shows a black screen.
+- **`redirect`**, if the site can't be embedded or if the page needs to receive every remote control key.
 
-**¿Por qué `redirect` no puede hacer zoom?** En la TV la app no corre en un Chromium al que se le pasen parámetros: corre en el motor de apps de Tizen, que no tiene opción de zoom, y al navegar el código de la app desaparece. En `redirect`, si hace falta escalar, debe hacerlo la propia página (por ejemplo, aceptando un parámetro `?zoom=`).
+**Why can't `redirect` zoom?** On the TV the app doesn't run in a Chromium you can pass flags to: it runs in Tizen's app engine, which has no zoom option, and once it navigates away the app's code is gone. In `redirect`, if scaling is needed, the page itself must do it (for example, by accepting a `?zoom=` parameter).
 
-### Zoom (solo iframe)
+### Zoom (iframe only)
 
-Las apps de Tizen se dibujan a un ancho fijo de 1920 px, sin importar la resolución real del panel. Si la página se ve muy grande o muy chica:
+Tizen apps render at a fixed width of 1920 px, regardless of the panel's actual resolution. If the page looks too big or too small:
 
-- **Fijo en el `.env`**: `KIOSK_ZOOM=1.25` (más grande) o `0.8` (más chica).
-- **Con el control remoto**: **CH+** / **CH−** suben o bajan al siguiente múltiplo de 10 % (100 %, 110 %, 120 %…). El valor se muestra en pantalla y queda guardado en la TV, incluso al apagarla o reinstalar la app. **0** borra el ajuste y vuelve al valor del `.env`. Si cambias `KIOSK_ZOOM` en el `.env` y reinstalas, el ajuste guardado se descarta y manda el nuevo valor.
-- **`auto`**: escala según la resolución física del panel, para que la página se vea como en un monitor de esa resolución (en un panel de 1366 px: 1920 / 1366 ≈ 140 %). Suele agrandar de más las páginas pensadas para 1920 px; úsalo solo si con `1` se ve chica.
+- **Fixed in `.env`**: `KIOSK_ZOOM=1.25` (bigger) or `0.8` (smaller).
+- **With the remote control**: **CH+** / **CH−** go up or down to the next multiple of 10 % (100 %, 110 %, 120 %…). The value is shown on screen and saved on the TV, even across power-offs and reinstalls. **0** clears the adjustment and returns to the `.env` value. If you change `KIOSK_ZOOM` in `.env` and reinstall, the saved adjustment is discarded and the new value applies.
+- **`auto`**: scales according to the panel's physical resolution, so the page looks as it would on a monitor of that resolution (on a 1366 px panel: 1920 / 1366 ≈ 140 %). It usually over-enlarges pages designed for 1920 px; use it only if the page looks small at `1`.
 
-Al abrir la app en modo iframe aparece unos segundos un aviso arriba a la derecha (`Zoom … | app … | panel … | iframe …`) con el zoom aplicado y las resoluciones detectadas, útil para diagnosticar.
+When the app opens in iframe mode, a notice appears for a few seconds in the top-right corner (`Zoom … | app … | panel … | iframe …`) with the applied zoom and the detected resolutions, useful for diagnosis.
 
 ### Basic auth
 
-Si `KIOSK_USER` tiene valor, antes de cargar la página la app hace una petición con usuario y clave para que la TV guarde las credenciales; después la página carga sin pedir login, en ambos modos.
+If `KIOSK_USER` is set, before loading the page the app makes a request with the user and password so the TV caches the credentials; the page then loads without asking for a login, in both modes.
 
-En `redirect`, si esa petición falla, la app navega como último recurso a `https://usuario:clave@sitio/`. Se evita siempre que se puede: con credenciales en la URL, la página las hereda en sus rutas relativas (audio, `fetch`, imágenes) y el navegador **bloquea esas peticiones**. Síntoma típico: la página carga pero no suena ni actualiza datos. En `iframe` no existe ese respaldo, porque los iframes no aceptan credenciales en la URL.
+In `redirect`, if that request fails, the app navigates to `https://user:password@site/` as a last resort. This is avoided whenever possible: with credentials in the URL, the page inherits them in its relative paths (audio, `fetch`, images) and the browser **blocks those requests**. Typical symptom: the page loads but plays no sound and doesn't refresh its data. In `iframe` there is no such fallback, because iframes don't accept credentials in the URL.
 
-### Sonido
+### Sound
 
-La app quita el silencio de la TV al abrir y, si `KIOSK_VOLUME` tiene valor, fija el volumen. Que la página suene depende de **cómo reproduce el audio**:
+The app unmutes the TV when it opens and, if `KIOSK_VOLUME` is set, sets the volume. Whether the page plays sound depends on **how it plays audio**:
 
-- En Tizen, `<audio>` / `new Audio()` lo descarga el **reproductor nativo de la TV**, que **no usa las credenciales de basic auth** del navegador ni reproduce `blob:` URLs: se queda en `stalled`, sin sonar ni dar error. Con basic auth, `new Audio()` no suena en ningún modo.
-- **Web Audio API** sí funciona, en `redirect` y en `iframe` (verificado en una TV con Tizen 5.5): descargar el archivo con `fetch()` (que usa las credenciales), decodificarlo con `decodeAudioData` y reproducirlo con un `AudioBufferSource`. En Chromium 69 además arranca sin bloqueo de reproducción automática; en TVs más nuevas (Chromium 71+) puede requerir una primera interacción.
+- On Tizen, `<audio>` / `new Audio()` is downloaded by the **TV's native player**, which **does not use the browser's basic auth credentials** and doesn't play `blob:` URLs either: it stays `stalled`, without playing or raising an error. With basic auth, `new Audio()` plays nothing in either mode.
+- The **Web Audio API** does work, in both `redirect` and `iframe` (verified on a Tizen 5.5 TV): download the file with `fetch()` (which uses the credentials), decode it with `decodeAudioData` and play it through an `AudioBufferSource`. On Chromium 69 it also starts without any autoplay restriction; newer TVs (Chromium 71+) may require a first interaction.
 
-Esto **se resuelve en el sitio**, no en esta app. Si el sitio no usa basic auth, `new Audio()` puede funcionar, pero el navegador puede bloquear la reproducción automática hasta la primera interacción (presionar **OK**).
+This **is solved in the site**, not in this app. If the site doesn't use basic auth, `new Audio()` may work, but the browser may block autoplay until the first interaction (press **OK**).
 
-## Instalación en la TV
+## Installing on the TV
 
-### 1. Activar el modo desarrollador (una sola vez)
+### 1. Enable developer mode (once)
 
-1. Averigua la **IP de tu PC** con `ipconfig` (campo *Dirección IPv4*).
-2. En la TV abre **Apps** y marca `1 2 3 4 5` con el control remoto.
-3. Activa **Developer mode**, escribe la IP de tu PC y **reinicia la TV** (apagar y encender).
-4. Averigua la **IP de la TV**: **Ajustes → General → Red → Estado de la red → Configuración IP** (en modelos 2022+: **Ajustes → Conexión → Red**).
+1. Find your **PC's IP** with `ipconfig` (*IPv4 Address* field).
+2. On the TV open **Apps** and enter `1 2 3 4 5` with the remote control.
+3. Turn on **Developer mode**, enter your PC's IP and **restart the TV** (power off and on).
+4. Find the **TV's IP**: **Settings → General → Network → Network Status → IP Settings** (on 2022+ models: **Settings → Connection → Network**).
 
-Conviene **reservar IPs fijas** para la TV y el PC en el router: si la del PC cambia, hay que repetir este paso; si cambia la de la TV, hay que volver a conectarla con la IP nueva.
+It's a good idea to **reserve fixed IPs** for the TV and the PC on the router: if the PC's IP changes, you must repeat this step; if the TV's changes, you must reconnect with the new IP.
 
-### 2. Conectar la TV
+### 2. Connect the TV
 
 ```bash
-sdb connect <IP_DE_LA_TV>
+sdb connect <TV_IP>
 sdb devices
 ```
 
-`sdb devices` lista la TV con su **nombre de dispositivo** en la última columna (por ejemplo `UN32T4310AFXZX`). Ese nombre es el que usan los comandos `tizen ... -t`; **no confundir con el DUID**.
+`sdb devices` lists the TV with its **device name** in the last column (for example `UN32T4310AFXZX`). That name is what the `tizen ... -t` commands use; **don't confuse it with the DUID**.
 
-### 3. Crear el certificado Samsung (una sola vez)
+### 3. Create the Samsung certificate (once)
 
-La TV solo instala apps firmadas con un certificado Samsung que incluya su **DUID** (identificador único del equipo).
+The TV only installs apps signed with a Samsung certificate that includes its **DUID** (the device's unique identifier).
 
-Con la TV conectada (paso 2), abre el **Certificate Manager** (`C:\tizen-studio\tools\certificate-manager\`):
+With the TV connected (step 2), open the **Certificate Manager** (`C:\tizen-studio\tools\certificate-manager\`):
 
-1. **+** → tipo **Samsung** → dispositivo **TV**.
-2. Nombre del perfil: el mismo que `TIZEN_PROFILE` en el `.env`.
-3. Crea un certificado de autor nuevo y guarda su contraseña.
-4. Inicia sesión con tu cuenta Samsung.
-5. En el certificado de distribuidor, verifica que aparezca el DUID de la TV conectada (lo detecta solo). Para verlo a mano: `sdb shell 0 getduid`.
+1. **+** → type **Samsung** → device **TV**.
+2. Profile name: the same as `TIZEN_PROFILE` in `.env`.
+3. Create a new author certificate and keep its password.
+4. Sign in with your Samsung account.
+5. In the distributor certificate, check that the connected TV's DUID is listed (it is detected automatically). To see it manually: `sdb shell 0 getduid`.
 
-Los archivos del certificado quedan en `%USERPROFILE%\SamsungCertificate\<perfil>\`. **Respáldalos**: si reinstalas Tizen Studio no hace falta crear otro, basta con volver a registrar el perfil apuntando a esos archivos (desde el Certificate Manager o con `tizen security-profiles add`). Para usar otra TV, hay que sumar su DUID al certificado de distribuidor.
+The certificate files are stored in `%USERPROFILE%\SamsungCertificate\<profile>\`. **Back them up**: if you reinstall Tizen Studio you don't need a new one, just register the profile again pointing to those files (from the Certificate Manager or with `tizen security-profiles add`). To use another TV, its DUID must be added to the distributor certificate.
 
-### 4. Empaquetar, instalar y abrir
+### 4. Package, install and launch
 
 ```bash
 npm run package
-tizen install -n Kiosk.wgt -t <NOMBRE_DEL_DISPOSITIVO> -- build
-tizen run -p AlozKiosk0.kiosk -t <NOMBRE_DEL_DISPOSITIVO>
+tizen install -n Kiosk.wgt -t <DEVICE_NAME> -- build
+tizen run -p AlozKiosk0.kiosk -t <DEVICE_NAME>
 ```
 
-- `npm run package` genera `build/Kiosk.wgt` firmado. La salida debe mencionar `Author certificate` y `Distributor1 certificate`; si no, el paquete quedó sin firmar y la TV lo rechazará (revisa `TIZEN_PROFILE`).
-- `tizen run` abre la app en la TV (opcional). En la TV aparece como **Kiosk** en Apps.
+- `npm run package` produces a signed `build/Kiosk.wgt`. The output must mention `Author certificate` and `Distributor1 certificate`; otherwise the package wasn't signed and the TV will reject it (check `TIZEN_PROFILE`).
+- `tizen run` launches the app on the TV (optional). On the TV it shows up as **Kiosk** under Apps.
 
-### 5. Abrir sola al encender
+### 5. Open automatically on power-on
 
-En la mayoría de los modelos: **Ajustes → General → Funciones inteligentes → Ejecutar automáticamente la última app**. Si la app estaba abierta al apagar la TV, se vuelve a abrir al encenderla.
+On most models: **Settings → General → Smart Features → Autorun Last App**. If the app was open when the TV was turned off, it opens again when the TV is turned on.
 
-## Actualizar la app
+## Updating the app
 
-Tras cambiar el `.env` o el código:
+After changing `.env` or the code:
 
 ```bash
-sdb connect <IP_DE_LA_TV>
+sdb connect <TV_IP>
 npm run package
-tizen install -n Kiosk.wgt -t <NOMBRE_DEL_DISPOSITIVO> -- build
-tizen run -p AlozKiosk0.kiosk -t <NOMBRE_DEL_DISPOSITIVO>
+tizen install -n Kiosk.wgt -t <DEVICE_NAME> -- build
+tizen run -p AlozKiosk0.kiosk -t <DEVICE_NAME>
 ```
 
-La instalación reemplaza la versión anterior. Si cambias el **icono o el nombre** de la app, sube también `version` en `src/config.xml` y desinstala antes de instalar (`tizen uninstall -p AlozKiosk0.kiosk -t <NOMBRE_DEL_DISPOSITIVO>`): la TV guarda el icono en caché y, si no, sigue mostrando el anterior.
+Installing replaces the previous version. If you change the app's **icon or name**, also bump `version` in `src/config.xml` and uninstall before installing (`tizen uninstall -p AlozKiosk0.kiosk -t <DEVICE_NAME>`): the TV caches the icon and otherwise keeps showing the old one.
 
-## Uso diario y control remoto
+## Daily use and remote control
 
-- La app abre la página y no requiere interacción.
-- En modo `iframe`: **CH+** / **CH−** ajustan el zoom y **0** lo restablece.
-- Para salir, usa el botón **Home** del control.
-- Si la red se cae al arrancar, la pantalla queda negra hasta que vuelve, y entonces la página carga sola.
+- The app opens the page and needs no interaction.
+- In `iframe` mode: **CH+** / **CH−** adjust the zoom and **0** resets it.
+- To exit, use the remote's **Home** button.
+- If the network is down on start, the screen stays black until it comes back, and then the page loads on its own.
 
-## Compatibilidad del sitio con la TV
+## Site compatibility with the TV
 
-La página se muestra con el **navegador interno de la TV**, que suele ser bastante más antiguo que uno de escritorio (ver la [tabla](#qué-tizen-tiene-mi-tv): una TV de 2020 usa Chromium 69, de 2018). Un sitio que se ve bien en el PC puede verse roto en la TV: sin márgenes ni bordes, con elementos gigantes, o con datos que no se actualizan. Eso **no se arregla desde esta app**: hay que hacer el sitio compatible.
+The page is rendered by the **TV's built-in browser**, which is usually much older than a desktop one (see the [table](#which-tizen-does-my-tv-have): a 2020 TV uses Chromium 69, from 2018). A site that looks fine on the PC may look broken on the TV: no margins or borders, huge elements, or data that doesn't refresh. **This app can't fix that**: the site has to be made compatible.
 
-Puntos típicos con frameworks modernos:
+Common issues with modern frameworks:
 
-- **Next.js 15+** asume Chrome 111+. Hay que declarar el navegador de la TV en `browserslist` y agregar polyfills de las APIs que el runtime usa sin comprobar (`globalThis`, `Object.fromEntries`, `Object.hasOwn`…), cargados antes que cualquier script de Next.
-- **Tailwind CSS v4** genera CSS moderno (`@layer`, `padding-inline`, `gap` en flexbox, `@property`, `color-mix()`) que los navegadores antiguos ignoran. Se corrige transformando el CSS al compilar (por ejemplo, con `postcss-preset-env`).
+- **Next.js 15+** assumes Chrome 111+. You need to declare the TV's browser in `browserslist` and add polyfills for the APIs the runtime uses without checking (`globalThis`, `Object.fromEntries`, `Object.hasOwn`…), loaded before any Next script.
+- **Tailwind CSS v4** emits modern CSS (`@layer`, `padding-inline`, flexbox `gap`, `@property`, `color-mix()`) that old browsers ignore. It can be fixed by transforming the CSS at build time (for example, with `postcss-preset-env`).
 
-**Probar sin la TV:** descarga el mismo Chromium que usa tu TV y abre ahí el sitio. Para Chromium 69 (revisión 576753):
+**Testing without the TV:** download the same Chromium your TV uses and open the site there. For Chromium 69 (revision 576753):
 
 ```bash
 npx @puppeteer/browsers install chromium@576753 --path C:\tools\chromium69
 ```
 
 ```powershell
-& "C:\tools\chromium69\chromium\win64-576753\chrome-win32\chrome.exe" --user-data-dir=C:\temp\perfil69 --window-size=1920,1080 "https://tu-sitio/"
+& "C:\tools\chromium69\chromium\win64-576753\chrome-win32\chrome.exe" --user-data-dir=C:\temp\profile69 --window-size=1920,1080 "https://your-site/"
 ```
 
-F12 abre DevTools para ver qué estilos o scripts fallan. Es un navegador sin actualizaciones de seguridad: úsalo solo para probar tus propios sitios.
+F12 opens DevTools to see which styles or scripts fail. It is a browser without security updates: use it only to test your own sites.
 
-## Depurar en la TV
+## Debugging on the TV
 
-Con la TV conectada por `sdb`, la app se puede abrir con el inspector de Chromium:
+With the TV connected through `sdb`, the app can be opened with the Chromium inspector:
 
 ```bash
-sdb -s <IP_DE_LA_TV>:26101 shell 0 was_kill AlozKiosk0          # cerrar la app si está abierta
-sdb -s <IP_DE_LA_TV>:26101 shell 0 debug AlozKiosk0.kiosk        # imprime "port: NNNNN"
-sdb -s <IP_DE_LA_TV>:26101 forward tcp:NNNNN tcp:NNNNN
+sdb -s <TV_IP>:26101 shell 0 was_kill AlozKiosk0          # close the app if it is open
+sdb -s <TV_IP>:26101 shell 0 debug AlozKiosk0.kiosk        # prints "port: NNNNN"
+sdb -s <TV_IP>:26101 forward tcp:NNNNN tcp:NNNNN
 ```
 
-Luego abre `http://localhost:NNNNN/json` en el PC: lista las páginas y su `webSocketDebuggerUrl` para conectarse por el protocolo de DevTools (consola, evaluar JavaScript, estilos calculados). En modo `iframe` el inspector muestra la app (`file:///index.html`); en `redirect`, la página del sitio. La TV no permite capturas de pantalla por este medio.
+Then open `http://localhost:NNNNN/json` on the PC: it lists the pages and their `webSocketDebuggerUrl` to connect through the DevTools protocol (console, evaluate JavaScript, computed styles). In `iframe` mode the inspector shows the app (`file:///index.html`), and the site runs in a separate execution context inside it; in `redirect`, it shows the site's page. The TV doesn't allow screenshots through this channel.
 
-## Estructura del proyecto
+## Project structure
 
 ```
-.env.example        plantilla de configuración (documentada)
-.env                tu configuración (no se versiona)
-package.json        scripts: build y package
-scripts/build.mjs   lee y valida .env, copia src/ a build/, genera config.js y empaqueta
-src/config.xml      manifiesto Tizen: id de la app, icono, permisos, perfil TV
-src/index.html      página contenedora a pantalla completa
-src/style.css       estilos de la página contenedora (archivo aparte por la CSP de Tizen)
-src/main.js         lógica de la app: protector de pantalla, sonido, red, auth, modos y zoom
-src/icon.png        icono de Smart Hub (PNG 512x423, tamaño recomendado por Samsung)
-build/              salida del build y el .wgt (se regenera, no se versiona)
+.env.example        configuration template (documented)
+.env                your configuration (not versioned)
+package.json        scripts: build and package
+scripts/build.mjs   reads and validates .env, copies src/ to build/, generates config.js and packages
+src/config.xml      Tizen manifest: app id, icon, privileges, TV profile
+src/index.html      full-screen container page
+src/style.css       container page styles (separate file because of Tizen's CSP)
+src/main.js         app logic: screen saver, sound, network, auth, modes and zoom
+src/icon.png        Smart Hub icon (PNG 512x423, Samsung's recommended size)
+build/              build output and the .wgt (regenerated, not versioned)
 ```
 
-Permisos que declara la app en `src/config.xml`: `internet`, `tv.inputdevice` (teclas CH+/CH−/0) y `tv.audio` (silencio y volumen). Identificador de la app: `AlozKiosk0.kiosk`.
+Privileges declared in `src/config.xml`: `internet`, `tv.inputdevice` (CH+/CH−/0 keys) and `tv.audio` (mute and volume). App ID: `AlozKiosk0.kiosk`.
 
-## Seguridad y buenas prácticas
+## Security and best practices
 
-- **El repositorio es público.** Nunca commitear `.env`, `build/`, `.wgt` ni certificados (`*.p12`); ya están en `.gitignore`. `.env.example` solo lleva valores de ejemplo.
-- **Las credenciales quedan en texto plano dentro del `.wgt`** (`config.js`). Usa un usuario dedicado para la TV, de solo lectura si es posible, nunca una cuenta personal, y no compartas el `.wgt`.
-- **Respalda el certificado Samsung** (`%USERPROFILE%\SamsungCertificate\`) fuera del repo.
-- **No editar `build/`**: se regenera en cada build. Los cambios van en `src/`.
-- **Nada de CSS ni JS inline en `src/index.html`**: Tizen aplica a la app una CSP (`style-src 'self'`) que bloquea los `<style>` inline sin avisar en pantalla. Los estilos van en `src/style.css` y el código en `src/main.js`.
-- **Código de `src/` compatible con navegadores antiguos**: el más viejo soportado es Chromium 47 (Tizen 3.0). Usa `var`, funciones normales y nada de sintaxis moderna sin probarla.
-- **Variables nuevas**: documéntalas en `.env.example`, valídalas en `scripts/build.mjs` y descríbelas en este README.
+- **The repository is public.** Never commit `.env`, `build/`, `.wgt` files or certificates (`*.p12`); they are already in `.gitignore`. `.env.example` only contains sample values.
+- **Credentials are stored in plain text inside the `.wgt`** (`config.js`). Use a dedicated user for the TV, read-only if possible, never a personal account, and don't share the `.wgt`.
+- **Back up the Samsung certificate** (`%USERPROFILE%\SamsungCertificate\`) outside the repo.
+- **Don't edit `build/`**: it is regenerated on every build. Changes go in `src/`.
+- **No inline CSS or JS in `src/index.html`**: Tizen applies a CSP to the app (`style-src 'self'`) that silently blocks inline `<style>` blocks. Styles go in `src/style.css` and code in `src/main.js`.
+- **Keep `src/` compatible with old browsers**: the oldest supported is Chromium 47 (Tizen 3.0). Use `var`, plain functions and no modern syntax without testing it.
+- **New variables**: document them in `.env.example`, validate them in `scripts/build.mjs` and describe them in this README.
 
-## Limitaciones
+## Limitations
 
-- En TVs de consumo el **modo desarrollador puede desactivarse** tras un tiempo o con una actualización de firmware; habrá que reactivarlo y reinstalar.
-- La app solo se instala en TVs cuyo DUID esté en el certificado.
-- En modo `redirect` no hay zoom, recarga periódica ni teclas CH+/CH− (ver [Modos de carga](#modos-de-carga-redirect-vs-iframe)).
-- El sonido depende de cómo lo reproduzca el sitio: con basic auth, `new Audio()` no suena en Tizen (ver [Sonido](#sonido)).
-- Para un despliegue comercial permanente conviene una pantalla **Samsung de señalización** (línea comercial, con MagicInfo / URL Launcher), que hace esto de fábrica sin modo desarrollador.
+- On consumer TVs, **developer mode may turn itself off** after a while or after a firmware update; you will need to re-enable it and reinstall.
+- The app only installs on TVs whose DUID is in the certificate.
+- In `redirect` mode there is no zoom, periodic reload or CH+/CH− keys (see [Load modes](#load-modes-redirect-vs-iframe)).
+- Sound depends on how the site plays it: with basic auth, `new Audio()` doesn't play on Tizen (see [Sound](#sound)).
+- For a permanent commercial deployment, a **Samsung signage display** (commercial line, with MagicInfo / URL Launcher) is a better fit: it does this out of the box without developer mode.
 
-## Solución de problemas
+## Troubleshooting
 
-| Síntoma | Causa probable y solución |
+| Symptom | Likely cause and fix |
 | --- | --- |
-| `No se encontró el CLI de Tizen` / `'tizen' is not recognized` | Tizen Studio no está instalado o le falta *Web CLI*. Ver [Instalar Tizen Studio](#instalar-tizen-studio), o define `TIZEN_HOME`. |
-| `Could not find or load main class <parte de tu ruta>` | El SDK está en una ruta con espacios. Instala Tizen Studio en `C:\tizen-studio`. |
-| `'sdb' is not recognized` | `C:\tizen-studio\tools` no está en el `PATH`; agrégalo o usa la ruta completa. |
-| `There is no <X> target` | En `-t` va el **nombre del dispositivo** que muestra `sdb devices`, no el DUID ni la IP. |
-| `npm run package` no menciona `Author certificate` | El perfil `TIZEN_PROFILE` no existe. Revisa con `tizen security-profiles list`. |
-| `tizen install` falla por certificado | El perfil no es tipo Samsung o no incluye el DUID de la TV. |
-| `sdb connect` no conecta | Modo desarrollador apagado, la TV no se reinició tras activarlo, o la IP del PC configurada en la TV cambió. |
-| La app no aparece en la TV tras instalar | El paquete no estaba firmado o `-t` era incorrecto; revisa la salida de `tizen install`. |
-| Pantalla negra en modo `iframe` | El sitio no permite ser embebido. Usa `redirect`. |
-| Pantalla negra en cualquier modo | Sin red: la app espera y carga sola cuando vuelve. |
-| Aparece el cuadro de login | Usuario o clave incorrectos en el `.env`, o el servidor rechazó la petición previa. |
-| La página carga pero no suena ni actualiza datos | Credenciales heredadas en la URL (ver [Basic auth](#basic-auth)) o sitio incompatible con el navegador de la TV (ver [Compatibilidad](#compatibilidad-del-sitio-con-la-tv)). |
-| No se escuchan las alertas | Si el sitio usa basic auth y `new Audio()`, el reproductor de la TV no descarga el audio: el sitio debe usar Web Audio (ver [Sonido](#sonido)). Si no, presiona **OK** una vez (bloqueo de autoplay) y revisa `KIOSK_VOLUME`. |
-| Se ve sin márgenes, sin bordes o con elementos gigantes | El CSS del sitio es demasiado moderno para la TV. Ver [Compatibilidad](#compatibilidad-del-sitio-con-la-tv). |
-| Se ve muy grande o muy chica | Modo `iframe` + `KIOSK_ZOOM` o CH+/CH−. En `redirect` no hay zoom. |
-| La app muestra el icono genérico | La TV guardó el icono anterior en caché: sube `version` en `src/config.xml`, desinstala y vuelve a instalar (ver [Actualizar la app](#actualizar-la-app)). |
-| Un cambio del `.env` no se refleja en la TV | La configuración va dentro del `.wgt`: vuelve a empaquetar e instalar. |
+| `Tizen CLI not found` / `'tizen' is not recognized` | Tizen Studio isn't installed or is missing *Web CLI*. See [Installing Tizen Studio](#installing-tizen-studio), or set `TIZEN_HOME`. |
+| `Could not find or load main class <part of your path>` | The SDK is in a path with spaces. Install Tizen Studio in `C:\tizen-studio`. |
+| `'sdb' is not recognized` | `C:\tizen-studio\tools` isn't in `PATH`; add it or use the full path. |
+| `There is no <X> target` | `-t` takes the **device name** shown by `sdb devices`, not the DUID or the IP. |
+| `npm run package` doesn't mention `Author certificate` | The `TIZEN_PROFILE` profile doesn't exist. Check with `tizen security-profiles list`. |
+| `tizen install` fails with a certificate error | The profile isn't a Samsung one or doesn't include the TV's DUID. |
+| `sdb connect` doesn't connect | Developer mode is off, the TV wasn't restarted after enabling it, or the PC IP set on the TV changed. |
+| The app doesn't show up on the TV after installing | The package wasn't signed or `-t` was wrong; check the `tizen install` output. |
+| Black screen in `iframe` mode | The site doesn't allow being embedded. Use `redirect`. |
+| Black screen in any mode | No network: the app waits and loads by itself when it comes back. |
+| The login prompt appears | Wrong user or password in `.env`, or the server rejected the initial request. |
+| The page loads but plays no sound and doesn't refresh data | Credentials inherited from the URL (see [Basic auth](#basic-auth)) or a site incompatible with the TV's browser (see [Compatibility](#site-compatibility-with-the-tv)). |
+| Alerts can't be heard | If the site uses basic auth and `new Audio()`, the TV's player doesn't download the audio: the site must use Web Audio (see [Sound](#sound)). Otherwise press **OK** once (autoplay block) and check `KIOSK_VOLUME`. |
+| No margins, no borders or huge elements | The site's CSS is too modern for the TV. See [Compatibility](#site-compatibility-with-the-tv). |
+| The page looks too big or too small | `iframe` mode + `KIOSK_ZOOM` or CH+/CH−. There is no zoom in `redirect`. |
+| The app shows the generic icon | The TV cached the previous icon: bump `version` in `src/config.xml`, uninstall and install again (see [Updating the app](#updating-the-app)). |
+| A `.env` change isn't reflected on the TV | The configuration lives inside the `.wgt`: package and install again. |

@@ -4,12 +4,12 @@
     var ZOOM_STEP = 0.1;
     var panel = null;
 
-    // Desactivar el protector de pantalla de la TV
+    // Disable the TV's screen saver
     try {
         webapis.appcommon.setScreenSaver(webapis.appcommon.AppCommonScreenSaverState.SCREEN_SAVER_OFF);
     } catch (e) {}
 
-    // Activar el sonido: la página reproduce alertas y la TV podría estar en silencio
+    // Turn sound on: the page may play alerts and the TV could be muted
     try {
         tizen.tvaudiocontrol.setMute(false);
         if (cfg.volume !== null) {
@@ -17,9 +17,9 @@
         }
     } catch (e) {}
 
-    // URL con credenciales embebidas (https://user:pass@host/...). Solo como último recurso:
-    // la página hereda esas credenciales en sus rutas relativas (audio, fetch, imágenes)
-    // y Chromium bloquea cualquier petición secundaria con credenciales en la URL.
+    // URL with embedded credentials (https://user:pass@host/...). Last resort only:
+    // the page inherits those credentials in its relative paths (audio, fetch, images)
+    // and Chromium blocks any subresource request with credentials in the URL.
     function urlWithCredentials() {
         var u = new URL(cfg.url);
         u.username = encodeURIComponent(cfg.user);
@@ -27,9 +27,9 @@
         return u.href;
     }
 
-    // Hace una petición autenticada para que el webview guarde las credenciales
-    // en su caché de auth; la carga posterior de la página ya no pide login.
-    // done(true) si el servidor aceptó las credenciales.
+    // Makes an authenticated request so the webview stores the credentials in its
+    // auth cache; the page then loads without asking for a login.
+    // done(true) if the server accepted the credentials.
     function preauth(done) {
         var finished = false;
         var xhr = new XMLHttpRequest();
@@ -43,9 +43,9 @@
         xhr.send();
     }
 
-    // Zoom automático: la app siempre se dibuja a un ancho fijo (normalmente 1920),
-    // aunque el panel sea de otra resolución. Se escala para que la página se vea
-    // como en un monitor con la resolución física real de la TV.
+    // Automatic zoom: the app always renders at a fixed width (usually 1920), even if
+    // the panel has another resolution. The page is scaled to look as it would on a
+    // monitor with the TV's actual physical resolution.
     function autoZoom(done) {
         try {
             tizen.systeminfo.getPropertyValue('DISPLAY', function (display) {
@@ -57,8 +57,8 @@
         }
     }
 
-    // El zoom ajustado con el control se guarda junto con el KIOSK_ZOOM del .env con el
-    // que se ajustó: si después cambia el .env, el ajuste viejo se descarta y manda el .env.
+    // The zoom adjusted with the remote is saved together with the .env KIOSK_ZOOM it was
+    // adjusted from: if .env changes later, the old adjustment is dropped and .env wins.
     function savedZoom() {
         try {
             var saved = JSON.parse(localStorage.getItem(ZOOM_KEY));
@@ -78,16 +78,16 @@
         } catch (e) {}
     }
 
-    // Siguiente múltiplo de ZOOM_STEP hacia arriba o abajo (1.15 -> 1.2 / 1.1),
-    // para que el zoom siempre quede en 100 %, 110 %, 120 %...
+    // Next multiple of ZOOM_STEP up or down (1.15 -> 1.2 / 1.1),
+    // so the zoom always lands on 100 %, 110 %, 120 %...
     function stepZoom(zoom, direction) {
         var steps = zoom / ZOOM_STEP;
         var next = direction > 0 ? Math.floor(steps + 1e-6) + 1 : Math.ceil(steps - 1e-6) - 1;
         return Math.max(0.3, Math.round(next * ZOOM_STEP * 100) / 100);
     }
 
-    // Se escala el iframe completo: se agranda/achica su área y luego se aplica scale()
-    // para que ocupe exactamente la pantalla.
+    // Scales the whole iframe: its box is enlarged/shrunk and then scale() is applied
+    // so it covers exactly the screen.
     function applyZoom(frame, zoom) {
         frame.style.width = (100 / zoom) + 'vw';
         frame.style.height = (100 / zoom) + 'vh';
@@ -95,7 +95,7 @@
         frame.style.transform = 'scale(' + zoom + ')';
     }
 
-    // Texto de diagnóstico: zoom, viewport de la app, panel físico y tamaño real del iframe
+    // Diagnostic text: zoom, app viewport, physical panel and actual iframe size
     function zoomInfo(frame, zoom) {
         var rect = frame.getBoundingClientRect();
         return 'Zoom ' + Math.round(zoom * 100) + '%' +
@@ -113,7 +113,7 @@
         toastTimer = setTimeout(function () { el.style.display = 'none'; }, ms || 2000);
     }
 
-    // Control remoto: CH+ / CH- ajustan el zoom, 0 vuelve al valor del .env
+    // Remote control: CH+ / CH- adjust the zoom, 0 returns to the .env value
     function bindRemote(frame, initialZoom) {
         var keys = { ChannelUp: 1, ChannelDown: -1, '0': 0 };
         var codes = {};
@@ -144,7 +144,7 @@
     }
 
     function loadIframe() {
-        // Chromium bloquea user:pass@ en iframes, así que aquí dependemos del preauth
+        // Chromium blocks user:pass@ in iframes, so here we rely on preauth
         var frame = document.createElement('iframe');
         frame.src = cfg.url;
         frame.setAttribute('allow', 'autoplay; fullscreen');
@@ -166,7 +166,7 @@
         if (cfg.mode === 'iframe') {
             loadIframe();
         } else {
-            // Con las credenciales ya en caché se navega a la URL limpia
+            // With the credentials already cached, navigate to the clean URL
             window.location.replace(cfg.user && !authCached ? urlWithCredentials() : cfg.url);
         }
     }
@@ -179,7 +179,7 @@
         }
     }
 
-    // Si la TV arranca sin red, esperar a tenerla antes de cargar
+    // If the TV starts without network, wait for it before loading
     if (navigator.onLine) {
         start();
     } else {

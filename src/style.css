@@ -1,6 +1,6 @@
-/* En archivo aparte a propósito: Tizen aplica a la app la CSP "style-src 'self'",
-   que bloquea los <style> inline (en la TV no se aplicaban y el body quedaba con
-   margen y el iframe sin posición ni transform-origin). */
+/* Separate file on purpose: Tizen applies the CSP "style-src 'self'" to the app,
+   which blocks inline <style> blocks (on the TV they weren't applied, leaving the
+   body with a margin and the iframe without position or transform-origin). */
 
 html, body {
     margin: 0;

@@ -6,7 +6,7 @@ import { homedir } from 'node:os';
 const root = join(import.meta.dirname, '..');
 const envPath = join(root, '.env');
 if (!existsSync(envPath)) {
-    console.error('Falta .env (copia .env.example a .env)');
+    console.error('Missing .env (copy .env.example to .env)');
     process.exit(1);
 }
 
@@ -24,7 +24,7 @@ const url = env.KIOSK_URL;
 try {
     new URL(url);
 } catch {
-    console.error(`KIOSK_URL inválida: ${url}`);
+    console.error(`Invalid KIOSK_URL: ${url}`);
     process.exit(1);
 }
 
@@ -42,7 +42,7 @@ function parseVolume(value) {
     if (!value) return null;
     const volume = Number(value);
     if (!Number.isInteger(volume) || volume < 0 || volume > 100) {
-        console.error(`KIOSK_VOLUME inválido: ${value} (usa un entero de 0 a 100, o vacío)`);
+        console.error(`Invalid KIOSK_VOLUME: ${value} (use an integer from 0 to 100, or leave it empty)`);
         process.exit(1);
     }
     return volume;
@@ -53,30 +53,30 @@ function parseZoom(value) {
     if (value === 'auto') return 'auto';
     const zoom = Number(value);
     if (!(zoom > 0)) {
-        console.error(`KIOSK_ZOOM inválido: ${value} (usa "auto" o un número, ej. 1.25)`);
+        console.error(`Invalid KIOSK_ZOOM: ${value} (use "auto" or a number, e.g. 1.25)`);
         process.exit(1);
     }
     return zoom;
 }
 
 if (config.mode === 'redirect' && config.zoom !== 'auto' && config.zoom !== 1) {
-    console.warn('Aviso: KIOSK_ZOOM solo funciona con KIOSK_MODE=iframe; en modo redirect se ignora.');
+    console.warn('Warning: KIOSK_ZOOM only works with KIOSK_MODE=iframe; it is ignored in redirect mode.');
 }
 
 const buildDir = join(root, 'build');
 rmSync(buildDir, { recursive: true, force: true });
 cpSync(join(root, 'src'), buildDir, { recursive: true });
 writeFileSync(join(buildDir, 'config.js'), `window.KIOSK_CONFIG = ${JSON.stringify(config, null, 2)};\n`);
-console.log('build/ generado:', { ...config, password: config.password ? '***' : '' });
+console.log('build/ generated:', { ...config, password: config.password ? '***' : '' });
 
 if (process.argv.includes('--package')) {
     const profile = env.TIZEN_PROFILE || 'kiosk';
     const tizen = findTizen(env.TIZEN_HOME);
     if (!tizen) {
         console.error(
-            '\nNo se encontró el CLI de Tizen. Instala Tizen Studio (con TV Extensions) y luego:\n' +
-            '  - agrega <tizen-studio>\\tools\\ide\\bin al PATH, o\n' +
-            '  - define TIZEN_HOME=<ruta de tizen-studio> en el .env'
+            '\nTizen CLI not found. Install Tizen Studio (with TV Extensions) and then:\n' +
+            '  - add <tizen-studio>\\tools\\ide\\bin to PATH, or\n' +
+            '  - set TIZEN_HOME=<tizen-studio path> in .env'
         );
         process.exit(1);
     }
@@ -93,7 +93,7 @@ function findTizen(tizenHome) {
         tizenHome,
         'C:\\tizen-studio',
         join(homedir(), 'tizen-studio'),
-        // SDK instalado por la extensión Tizen de VS Code
+        // SDK installed by the Tizen extension for VS Code
         join(homedir(), '.tizen-extension-platform', 'server', 'sdktools', 'data'),
     ].filter(Boolean);
     for (const home of homes) {
